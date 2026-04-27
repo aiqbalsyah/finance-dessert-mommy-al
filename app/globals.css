@@ -1,0 +1,509 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "material-symbols/sharp.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sora);
+  --font-heading: var(--font-roboto-condensed);
+  --font-mono: var(--font-ubuntu-mono), ui-monospace, monospace;
+  --color-accent-warm: var(--accent-warm);
+  --color-accent-cool: var(--accent-cool);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-badge-secondary: var(--badge-secondary);
+  --color-badge-secondary-foreground: var(--badge-secondary-foreground);
+  --color-badge-warning: var(--badge-warning);
+  --color-badge-warning-foreground: var(--badge-warning-foreground);
+  --color-badge-success: var(--badge-success);
+  --color-badge-success-foreground: var(--badge-success-foreground);
+  --color-badge-destructive: var(--badge-destructive);
+  --color-badge-destructive-foreground: var(--badge-destructive-foreground);
+  --color-badge-info: var(--badge-info);
+  --color-badge-info-foreground: var(--badge-info-foreground);
+  --color-badge-accent: var(--badge-accent);
+  --color-badge-accent-foreground: var(--badge-accent-foreground);
+  --color-badge-muted: var(--badge-muted);
+  --color-badge-muted-foreground: var(--badge-muted-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-border: var(--highlight-border);
+  --color-table-header: var(--table-header);
+  --color-table-row-highlight: var(--table-row-highlight);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-button-primary: var(--button-primary);
+  --color-button-primary-foreground: var(--button-primary-foreground);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Design tokens — component colors */
+  --color-footer-bg: var(--footer-bg);
+  --color-footer-text: var(--footer-text);
+  --color-footer-hover: var(--footer-hover);
+  --color-trend-positive: var(--trend-positive);
+  --color-trend-negative: var(--trend-negative);
+  --color-sparkline-stroke: var(--sparkline-stroke);
+  --color-sparkline-fill: var(--sparkline-fill);
+  /* Pipeline status colors */
+  --color-pipeline-completed-bg: var(--pipeline-completed-bg);
+  --color-pipeline-completed-border: var(--pipeline-completed-border);
+  --color-pipeline-completed-text: var(--pipeline-completed-text);
+  --color-pipeline-completed-line: var(--pipeline-completed-line);
+  --color-pipeline-warning-bg: var(--pipeline-warning-bg);
+  --color-pipeline-warning-border: var(--pipeline-warning-border);
+  --color-pipeline-warning-text: var(--pipeline-warning-text);
+  --color-pipeline-warning-line: var(--pipeline-warning-line);
+  --color-pipeline-error-bg: var(--pipeline-error-bg);
+  --color-pipeline-error-border: var(--pipeline-error-border);
+  --color-pipeline-error-text: var(--pipeline-error-text);
+  --color-pipeline-error-line: var(--pipeline-error-line);
+  --color-pipeline-pending-bg: var(--pipeline-pending-bg);
+  --color-pipeline-pending-border: var(--pipeline-pending-border);
+  --color-pipeline-pending-text: var(--pipeline-pending-text);
+  --color-pipeline-pending-line: var(--pipeline-pending-line);
+  --color-pipeline-dot-success: var(--pipeline-dot-success);
+  --color-pipeline-dot-error: var(--pipeline-dot-error);
+  --color-pipeline-dot-pending: var(--pipeline-dot-pending);
+  --color-pipeline-metric-bg: var(--pipeline-metric-bg);
+  /* Analysis pipeline colors */
+  --color-analysis-avatar-active: var(--analysis-avatar-active);
+  --color-analysis-line-pending: var(--analysis-line-pending);
+  --color-analysis-avatar-border: var(--analysis-avatar-border);
+  --color-analysis-detail-hover: var(--analysis-detail-hover);
+  /* Design tokens — sizing */
+  --radius-card: 2px;
+  --radius-action: 4px;
+  --radius-action-bar: 12px;
+
+  /* Font sizes — extra small */
+  --text-2xs: 0.625rem; /* 10px */
+  --text-2xs--line-height: calc(0.875 / 0.625); /* 14px */
+}
+
+:root {
+  /* Neutrals — Figma neutrals scale */
+  --background: #f5f5f5; /* neutrals/100 */
+  --foreground: #1d1d1d; /* neutrals/900 */
+  --card: #ffffff; /* neutrals/50 */
+  --card-foreground: #1d1d1d; /* neutrals/900 */
+  --popover: #ffffff; /* neutrals/50 */
+  --popover-foreground: #1d1d1d; /* neutrals/900 */
+
+  /* Primary — Vivid Emerald */
+  --primary: #00f9b1; /* primary-500 */
+  --primary-foreground: #1d1d1d; /* neutrals/900 */
+
+  /* Button Primary — Oxford Blue (Figma) */
+  --button-primary: #013341; /* secondary-600 */
+  --button-primary-foreground: #fafafa;
+
+  /* Secondary — light neutral surface */
+  --secondary: #f5f5f5; /* neutrals/100 */
+  --secondary-foreground: #1d1d1d; /* neutrals/900 */
+
+  /* Muted */
+  --muted: #f5f5f5; /* neutrals/100 */
+  --muted-foreground: #898989; /* neutrals/600 */
+
+  /* Accent — hover backgrounds */
+  --accent: #f5f5f5; /* neutrals/100 */
+  --accent-foreground: #1d1d1d; /* neutrals/900 */
+
+  /* Destructive */
+  --destructive: #d22d2d; /* danger-500 */
+
+  /* Borders & inputs */
+  --border: #e5e5e5; /* neutrals/200 */
+  --input: #e5e5e5; /* neutrals/200 */
+  --ring: #00f9b1; /* primary-500 */
+
+  /* Charts — Figma donut palette */
+  --chart-1: #013341; /* oxford blue */
+  --chart-2: #00f9b1; /* vivid emerald */
+  --chart-3: #008961; /* dark green */
+  --chart-4: #557a84; /* muted teal */
+  --chart-5: #00181e; /* near-black teal */
+
+  /* Accent tokens */
+  --accent-warm: #54fbcb; /* primary-300 */
+  --accent-cool: #557a84; /* secondary-300 */
+
+  --radius: 0.725rem;
+
+  /* Badge color tokens — Figma (Tailwind defaults) */
+  --badge-secondary: #f5f5f5; /* neutral-100 */
+  --badge-secondary-foreground: #525252; /* neutral-600 */
+  --badge-warning: #fef3c7; /* amber-100 */
+  --badge-warning-foreground: #d97706; /* amber-600 */
+  --badge-success: #dcfce7; /* green-100 */
+  --badge-success-foreground: #16a34a; /* green-600 */
+  --badge-destructive: #ffe2e2; /* red-100 */
+  --badge-destructive-foreground: #ef4444; /* red-500 */
+  --badge-info: #dbeafe; /* blue-100 */
+  --badge-info-foreground: #3b82f6; /* blue-500 */
+  --badge-accent: #ffedd5; /* orange-100 */
+  --badge-accent-foreground: #f97316; /* orange-500 */
+  --badge-muted: #f1f5f9; /* slate-100 */
+  --badge-muted-foreground: #64748b; /* slate-500 */
+
+  /* Component tokens */
+  --highlight: #f8fafc;
+  --highlight-border: #d4d4d4;
+  --table-header: #f5f5f5;
+  --table-row-highlight: #f1f5f9;
+
+  /* Sidebar — White */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1d1d1d; /* neutrals/900 */
+  --sidebar-primary: #013341; /* button-primary */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f5f5; /* neutrals/100 hover bg */
+  --sidebar-accent-foreground: #1d1d1d; /* neutrals/900 */
+  --sidebar-border: #e5e5e5; /* neutrals/200 */
+  --sidebar-ring: #00f9b1; /* primary-500 */
+
+  /* Status — success */
+  --success: #2fca5d; /* success-500 */
+  --success-foreground: #ffffff; /* neutrals/50 */
+  --success-50: #eafaef;
+  --success-500: #2fca5d;
+  --success-900: #145527;
+
+  /* Status — warning */
+  --warning: #f4b508; /* warning-500 */
+  --warning-foreground: #1d1d1d; /* neutrals/900 */
+  --warning-50: #fef8e6;
+  --warning-500: #f4b508;
+  --warning-900: #664c03;
+
+  /* Status — danger */
+  --danger: #d22d2d; /* danger-500 */
+  --danger-foreground: #ffffff; /* neutrals/50 */
+  --danger-50: #fbeaea;
+  --danger-500: #d22d2d;
+  --danger-900: #581313;
+
+  /* Footer */
+  --footer-bg: #f0f3f4;
+  --footer-text: #013847;
+  --footer-hover: #013847;
+  /* Trend indicators */
+  --trend-positive: #16a34a;
+  --trend-negative: #ef4444;
+  /* Sparkline */
+  --sparkline-stroke: #00b17e;
+  --sparkline-fill: #c1f6dd;
+  /* Pipeline — completed */
+  --pipeline-completed-bg: #b0c1c6;
+  --pipeline-completed-border: #8aa3aa;
+  --pipeline-completed-text: #013847;
+  --pipeline-completed-line: #013847;
+  /* Pipeline — warning */
+  --pipeline-warning-bg: #ffedd5;
+  --pipeline-warning-border: #fed7aa;
+  --pipeline-warning-text: #f97316;
+  --pipeline-warning-line: #f97316;
+  /* Pipeline — error */
+  --pipeline-error-bg: #ffe2e2;
+  --pipeline-error-border: #fecaca;
+  --pipeline-error-text: #d22d2d;
+  --pipeline-error-line: #d22d2d;
+  /* Pipeline — pending */
+  --pipeline-pending-bg: #e6ebed;
+  --pipeline-pending-border: #b0c1c6;
+  --pipeline-pending-text: #557a84;
+  --pipeline-pending-line: #b0c1c6;
+  /* Pipeline — shared */
+  --pipeline-dot-success: #22c55e;
+  --pipeline-dot-error: #ef4444;
+  --pipeline-dot-pending: #cbd5e1;
+  --pipeline-metric-bg: #e6ebed;
+  /* Analysis pipeline */
+  --analysis-avatar-active: #00e3a1;
+  --analysis-line-pending: #cbd5e1;
+  --analysis-avatar-border: #e2e8f0;
+  --analysis-detail-hover: #ebebeb;
+  /* Sizing (non-themed) */
+  --chart-height: 300px;
+  --sparkline-w: 120px;
+  --sparkline-h: 90px;
+  --search-max-w: 399px;
+  --pipeline-dot-size: 7px;
+  --alerts-sidebar-w: 380px;
+}
+
+.dark {
+  /* Neutrals — dark mode */
+  --background: #292929; /* neutrals/100 dark */
+  --foreground: #f0f0f0; /* neutrals/900 dark */
+  --card: #282828; /* neutrals/50 dark */
+  --card-foreground: #f0f0f0; /* neutrals/900 dark */
+  --popover: #282828; /* neutrals/50 dark */
+  --popover-foreground: #f0f0f0; /* neutrals/900 dark */
+
+  /* Primary */
+  --primary: #1ee6ac; /* primary-500 dark */
+  --primary-foreground: #1d1d1d; /* neutrals/900 */
+
+  /* Button Primary */
+  --button-primary: #0d5563; /* secondary-600 dark */
+  --button-primary-foreground: #fafafa;
+
+  /* Secondary */
+  --secondary: #434343; /* neutrals/200 dark */
+  --secondary-foreground: #f0f0f0; /* neutrals/900 dark */
+
+  /* Muted */
+  --muted: #434343; /* neutrals/200 dark */
+  --muted-foreground: #a6a6a6; /* neutrals/600 dark */
+
+  /* Accent */
+  --accent: #434343; /* neutrals/200 dark */
+  --accent-foreground: #f0f0f0; /* neutrals/900 dark */
+
+  /* Destructive */
+  --destructive: #c13e3e; /* danger-500 dark */
+
+  /* Borders & inputs */
+  --border: #434343; /* neutrals/200 dark */
+  --input: #515151; /* neutrals/300 dark */
+  --ring: #1ee6ac; /* primary-500 dark */
+
+  /* Charts — dark mode (brighter for dark backgrounds) */
+  --chart-1: #0d5563; /* oxford blue lightened */
+  --chart-2: #1ee6ac; /* vivid emerald */
+  --chart-3: #4ade80; /* green-400 */
+  --chart-4: #7b9aa2; /* muted teal lightened */
+  --chart-5: #34606c; /* dark teal lightened */
+
+  /* Accent tokens */
+  --accent-warm: #17a87e; /* primary-300 dark */
+  --accent-cool: #7b9aa2; /* secondary-300 dark */
+
+  /* Sidebar */
+  --sidebar: #282828; /* card dark */
+  --sidebar-foreground: #f0f0f0; /* neutrals/900 dark */
+  --sidebar-primary: #0d5563; /* button-primary dark */
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #434343; /* neutrals/200 dark hover bg */
+  --sidebar-accent-foreground: #f0f0f0; /* neutrals/900 dark */
+  --sidebar-border: #434343; /* neutrals/200 dark */
+  --sidebar-ring: #1ee6ac; /* primary-500 dark */
+
+  /* Badge color tokens — dark */
+  --badge-secondary: #434343;
+  --badge-secondary-foreground: #d7d7d7;
+  --badge-warning: #3e3109;
+  --badge-warning-foreground: #eed489;
+  --badge-success: #12361d;
+  --badge-success-foreground: #9addae;
+  --badge-destructive: #371010;
+  --badge-destructive-foreground: #de9797;
+  --badge-info: #172554;
+  --badge-info-foreground: #93c5fd;
+  --badge-accent: #431407;
+  --badge-accent-foreground: #fdba74;
+  --badge-muted: #1e293b;
+  --badge-muted-foreground: #94a3b8;
+
+  /* Component tokens — dark */
+  --highlight: #1a1f25;
+  --highlight-border: #525252;
+  --table-header: #1a1a1a;
+  --table-row-highlight: #1e293b;
+
+  /* Status — success dark */
+  --success: #44c069; /* success-500 dark */
+  --success-foreground: #1d1d1d;
+  --success-50: #12361d;
+  --success-500: #44c069;
+  --success-900: #9addae;
+
+  /* Status — warning dark */
+  --warning: #dfad22; /* warning-500 dark */
+  --warning-foreground: #1d1d1d;
+  --warning-50: #3e3109;
+  --warning-500: #dfad22;
+  --warning-900: #eed489;
+
+  /* Status — danger dark */
+  --danger: #c13e3e; /* danger-500 dark */
+  --danger-foreground: #ffffff;
+  --danger-50: #371010;
+  --danger-500: #c13e3e;
+  --danger-900: #de9797;
+
+  /* Footer */
+  --footer-bg: #1a1a1a;
+  --footer-text: #e0e0e0;
+  --footer-hover: #434343;
+  /* Trend indicators */
+  --trend-positive: #4ade80;
+  --trend-negative: #f87171;
+  /* Sparkline */
+  --sparkline-stroke: #00b17e;
+  --sparkline-fill: #0d3d2e;
+  /* Pipeline — completed */
+  --pipeline-completed-bg: #2a3a3e;
+  --pipeline-completed-border: #3a5055;
+  --pipeline-completed-text: #a0c4cc;
+  --pipeline-completed-line: #0d5563;
+  /* Pipeline — warning */
+  --pipeline-warning-bg: #431407;
+  --pipeline-warning-border: #6b3a1a;
+  --pipeline-warning-text: #fdba74;
+  --pipeline-warning-line: #fb923c;
+  /* Pipeline — error */
+  --pipeline-error-bg: #371010;
+  --pipeline-error-border: #5c1f1f;
+  --pipeline-error-text: #fca5a5;
+  --pipeline-error-line: #f87171;
+  /* Pipeline — pending */
+  --pipeline-pending-bg: #1e2a2e;
+  --pipeline-pending-border: #3a4a4e;
+  --pipeline-pending-text: #8aa3aa;
+  --pipeline-pending-line: #3a4a4e;
+  /* Pipeline — shared */
+  --pipeline-dot-success: #4ade80;
+  --pipeline-dot-error: #f87171;
+  --pipeline-dot-pending: #475569;
+  --pipeline-metric-bg: #1e2a2e;
+  /* Analysis pipeline */
+  --analysis-avatar-active: #059669;
+  --analysis-line-pending: #475569;
+  --analysis-avatar-border: #334155;
+  --analysis-detail-hover: #3a3a3a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sora), system-ui, sans-serif;
+  }
+}
+
+/* Design token utilities — dimensions */
+@layer utilities {
+  .h-chart {
+    height: var(--chart-height);
+  }
+  .w-sparkline {
+    width: var(--sparkline-w);
+  }
+  .h-sparkline {
+    height: var(--sparkline-h);
+  }
+  .max-w-search {
+    max-width: var(--search-max-w);
+  }
+  .size-pipeline-dot {
+    width: var(--pipeline-dot-size);
+    height: var(--pipeline-dot-size);
+  }
+}
+
+@utility w-alerts-sidebar {
+  width: var(--alerts-sidebar-w);
+}
+
+/* Design token utilities — component patterns */
+@layer components {
+  .card-shell {
+    border-radius: var(--radius-card);
+    padding-top: 0;
+    padding-bottom: 0;
+    box-shadow: none;
+  }
+  .list-item-hover {
+    border-bottom: 1px solid var(--border);
+    transition-property: color, background-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+  .list-item-hover:last-child {
+    border-bottom-width: 0;
+  }
+  .list-item-hover:hover {
+    background-color: var(--highlight);
+  }
+}
+
+/* Sonner toast layout — content fills, buttons stay in row */
+[data-sonner-toast] [data-content] {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+}
+
+/* Sonner toast — type-specific title & icon colors (Figma) */
+[data-sonner-toast][data-type="error"] [data-title],
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: #d22d2d;
+}
+
+[data-sonner-toast][data-type="success"] [data-title],
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: #16a34a;
+}
+
+[data-sonner-toast][data-type="warning"] [data-title],
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: #f97316;
+}
+
+.dark [data-sonner-toast][data-type="error"] [data-title],
+.dark [data-sonner-toast][data-type="error"] [data-icon] {
+  color: #f87171;
+}
+
+.dark [data-sonner-toast][data-type="success"] [data-title],
+.dark [data-sonner-toast][data-type="success"] [data-icon] {
+  color: #4ade80;
+}
+
+.dark [data-sonner-toast][data-type="warning"] [data-title],
+.dark [data-sonner-toast][data-type="warning"] [data-icon] {
+  color: #fb923c;
+}
