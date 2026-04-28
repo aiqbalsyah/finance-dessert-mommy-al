@@ -3,6 +3,8 @@
 import { useMemo } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 
+import { useAuth } from "@/context/auth-provider"
+import { AuditTooltip } from "@/components/shared/audit-tooltip"
 import { Icon } from "@/components/shared/icon"
 import { DataTableCard } from "@/components/shared/data-table-card"
 import { Button } from "@/components/ui/button"
@@ -25,6 +27,9 @@ interface BahanTableProps {
 }
 
 export function BahanTable({ data, accounts, onEdit, onDelete }: BahanTableProps) {
+  const { can } = useAuth()
+  const canEdit = can("purchases:update")
+  const canDelete = can("purchases:delete")
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
 
   const columns = useMemo<ColumnDef<Purchase>[]>(
@@ -33,7 +38,14 @@ export function BahanTable({ data, accounts, onEdit, onDelete }: BahanTableProps
         accessorKey: "purchasedAt",
         header: "Tanggal",
         cell: ({ row }) => (
-          <span className="whitespace-nowrap">{formatDate(row.getValue<number>("purchasedAt"))}</span>
+          <AuditTooltip
+            createdAt={row.original.createdAt}
+            updatedAt={row.original.updatedAt}
+            createdBy={row.original.createdBy}
+            updatedBy={row.original.updatedBy}
+          >
+            <span className="whitespace-nowrap">{formatDate(row.getValue<number>("purchasedAt"))}</span>
+          </AuditTooltip>
         ),
       },
       {
@@ -99,6 +111,9 @@ export function BahanTable({ data, accounts, onEdit, onDelete }: BahanTableProps
         enableHiding: false,
         cell: ({ row }) => {
           const purchase = row.original
+          if (!canEdit && !canDelete) {
+            return <span className="text-xs text-muted-foreground">—</span>
+          }
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -110,17 +125,21 @@ export function BahanTable({ data, accounts, onEdit, onDelete }: BahanTableProps
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onEdit(purchase)}>
-                      <Icon name="edit" size={16} />
-                      Ubah
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(purchase)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Icon name="delete" size={16} />
-                      Hapus
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(purchase)}>
+                        <Icon name="edit" size={16} />
+                        Ubah
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(purchase)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Icon name="delete" size={16} />
+                        Hapus
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -129,7 +148,7 @@ export function BahanTable({ data, accounts, onEdit, onDelete }: BahanTableProps
         },
       },
     ],
-    [accountMap, onEdit, onDelete]
+    [accountMap, onEdit, onDelete, canEdit, canDelete]
   )
 
   return (

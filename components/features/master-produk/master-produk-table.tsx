@@ -3,6 +3,8 @@
 import { useMemo } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 
+import { useAuth } from "@/context/auth-provider"
+import { AuditTooltip } from "@/components/shared/audit-tooltip"
 import { Icon } from "@/components/shared/icon"
 import { DataTableCard } from "@/components/shared/data-table-card"
 import { Badge } from "@/components/ui/badge"
@@ -24,13 +26,24 @@ interface MasterProdukTableProps {
 }
 
 export function MasterProdukTable({ data, onEdit, onDelete }: MasterProdukTableProps) {
+  const { can } = useAuth()
+  const canEdit = can("products:update")
+  const canDelete = can("products:delete")
+
   const columns = useMemo<ColumnDef<Product>[]>(
     () => [
       {
         accessorKey: "name",
         header: "Nama Produk",
         cell: ({ row }) => (
-          <span className="font-medium">{row.getValue<string>("name")}</span>
+          <AuditTooltip
+            createdAt={row.original.createdAt}
+            updatedAt={row.original.updatedAt}
+            createdBy={row.original.createdBy}
+            updatedBy={row.original.updatedBy}
+          >
+            <span className="font-medium">{row.getValue<string>("name")}</span>
+          </AuditTooltip>
         ),
       },
       {
@@ -76,6 +89,9 @@ export function MasterProdukTable({ data, onEdit, onDelete }: MasterProdukTableP
         enableHiding: false,
         cell: ({ row }) => {
           const product = row.original
+          if (!canEdit && !canDelete) {
+            return <span className="text-xs text-muted-foreground">—</span>
+          }
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -87,17 +103,21 @@ export function MasterProdukTable({ data, onEdit, onDelete }: MasterProdukTableP
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onEdit(product)}>
-                      <Icon name="edit" size={16} />
-                      Ubah
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(product)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Icon name="delete" size={16} />
-                      Hapus
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(product)}>
+                        <Icon name="edit" size={16} />
+                        Ubah
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(product)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Icon name="delete" size={16} />
+                        Hapus
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -106,7 +126,7 @@ export function MasterProdukTable({ data, onEdit, onDelete }: MasterProdukTableP
         },
       },
     ],
-    [onEdit, onDelete]
+    [onEdit, onDelete, canEdit, canDelete]
   )
 
   return (

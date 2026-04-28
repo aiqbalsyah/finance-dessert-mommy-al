@@ -1,5 +1,6 @@
 import { ZodError } from "zod"
 
+import { withAuth } from "@/lib/auth"
 import {
   AccountInUseError,
   AccountNotFoundError,
@@ -13,7 +14,7 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export const GET = withAuth<RouteContext>(async (_request, context) => {
   const { id } = await context.params
   try {
     const data = await getAccount(id)
@@ -24,13 +25,13 @@ export async function GET(_request: Request, context: RouteContext) {
     }
     return Response.json({ error: "Gagal memuat rekening." }, { status: 500 })
   }
-}
+}, { permission: "accounts:read" })
 
-export async function PATCH(request: Request, context: RouteContext) {
+export const PATCH = withAuth<RouteContext>(async (request, context, user) => {
   const { id } = await context.params
   try {
     const body = (await request.json()) as UpdateAccountPayload
-    const data = await updateAccount(id, body)
+    const data = await updateAccount(id, body, { userId: user.id, userName: user.displayName })
     return Response.json(data)
   } catch (error) {
     if (error instanceof AccountNotFoundError) {
@@ -44,9 +45,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
     return Response.json({ error: "Gagal mengubah rekening." }, { status: 500 })
   }
-}
+}, { permission: "accounts:update" })
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export const DELETE = withAuth<RouteContext>(async (_request, context) => {
   const { id } = await context.params
   try {
     await deleteAccount(id)
@@ -60,4 +61,4 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
     return Response.json({ error: "Gagal menghapus rekening." }, { status: 500 })
   }
-}
+}, { permission: "accounts:delete" })

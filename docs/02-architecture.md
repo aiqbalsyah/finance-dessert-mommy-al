@@ -6,7 +6,7 @@
 ├── app/                       # Next.js App Router — pages, layouts, routes
 │   ├── api/                   # Next.js API routes (thin handlers — call use cases)
 │   │   ├── accounts/          # Rekening CRUD endpoints (DELETE returns 409 if account has transactions)
-│   │   ├── auth/              # Auth API routes (login, me, logout)
+│   │   ├── auth/              # Auth API routes (login, me, logout, clear-must-change-password)
 │   │   ├── expenses/          # Pengeluaran CRUD endpoints (GET supports ?category=&from=&to=)
 │   │   ├── products/          # Master Produk CRUD endpoints (GET supports ?active=true)
 │   │   ├── purchases/         # Bahan CRUD endpoints (GET supports ?from=&to=)
@@ -14,7 +14,8 @@
 │   │   ├── sales/             # Penjualan CRUD endpoints (GET supports ?from=&to=&productId=)
 │   │   ├── reports/           # Aggregation endpoints (period-summary, account-balances, top-products, top-unsold-products, expense-breakdown)
 │   │   ├── unsold-items/      # Barang Tidak Terjual CRUD endpoints (GET supports ?from=&to=&productId=, dates as YYYY-MM-DD strings)
-│   │   └── uploads/           # Receipt upload endpoint (multipart/form-data)
+│   │   ├── uploads/           # Receipt upload endpoint (multipart/form-data)
+│   │   └── users/             # Pengguna CRUD + reset-password (Phase 04 enforces Admin-only via withAuth)
 │   ├── (dashboard)/           # Route group — dashboard layout
 │   │   ├── dashboard/         # Dashboard ringkasan keuangan — implemented in Phase 07
 │   │   ├── penjualan/         # Penjualan — daftar + input transaksi penjualan — implemented in Phase 04
@@ -24,7 +25,10 @@
 │   │   ├── barang-tidak-terjual/ # Input + daftar produk yang tidak terjual per tanggal — implemented in Phase 06
 │   │   ├── master-produk/     # CRUD master produk — implemented in Phase 03
 │   │   ├── rekening/          # CRUD rekening (bank dan cash) — implemented in Phase 02
-│   │   └── laporan/           # Laporan periode (P&L, breakdown, top produk) — implemented in Phase 07
+│   │   ├── laporan/           # Laporan periode (P&L, breakdown, top produk) — implemented in Phase 07
+│   │   └── pengaturan/
+│   │       ├── pengguna/      # Manajemen pengguna (Admin only) — implemented in auth-and-rbac Phase 05
+│   │       └── profil/        # Profil akun + ubah kata sandi (semua role) — implemented in auth-and-rbac Phase 08
 │   ├── auth/                  # Auth pages — shared auth layout
 │   │   └── login/             # Halaman login
 │   └── page.tsx               # Root — redirect ke /dashboard
@@ -40,6 +44,8 @@
 │   │   ├── master-produk/     # Placeholder — implemented in Phase 03
 │   │   ├── pengeluaran/       # Placeholder — implemented in Phase 05
 │   │   ├── penjualan/         # Placeholder — implemented in Phase 04
+│   │   ├── pengguna/          # Pengaturan → Pengguna (Admin-only user management) — auth-and-rbac Phase 05
+│   │   ├── profil/            # Pengaturan → Profil — info akun + dialog ubah kata sandi — auth-and-rbac Phase 08
 │   │   └── rekening/          # Placeholder — implemented in Phase 02
 │   ├── layouts/               # Layout components
 │   │   ├── auth/              # Auth layout (centered, logo)
@@ -69,16 +75,22 @@
 │   ├── query-provider.tsx     # TanStack Query client
 │   └── theme-provider.tsx     # next-themes provider
 ├── data/                      # Static/mock data
-│   ├── auth.ts                # Dummy auth data (to be replaced with Firebase Auth)
 │   └── notifications.ts       # Dummy notification data
 ├── docs/                      # Project documentation
 │   └── planning/              # Implementation plans (created via /plan)
 ├── hooks/                     # Custom React hooks
 │   └── use-mobile.ts          # Mobile/responsive detection hook
 ├── lib/
+│   ├── auth/                  # RBAC toolkit (server + client split)
+│   │   ├── get-current-user.ts # SERVER-ONLY — getCurrentUser + requireUser (React.cache for request-scoped caching)
+│   │   ├── permissions-matrix.ts # CLIENT-SAFE — Permission union type, permissionsByRole, can() (data only)
+│   │   ├── permissions.ts     # SERVER-ONLY — re-exports from matrix + adds requirePermission(), UnauthorizedError, ForbiddenError
+│   │   ├── with-auth.ts       # SERVER-ONLY — HOF wrapper for App Router routes
+│   │   └── index.ts           # Server-only barrel (use `permissions-matrix` directly on client)
 │   ├── api/                   # TanStack Query hooks per resource (client-callable)
 │   │   ├── accounts.ts        # Rekening hooks (useGetAccounts, useGetAccount, useCreateAccount, useUpdateAccount, useDeleteAccount)
 │   │   ├── auth.ts            # Auth hooks (useCurrentUser, useLogin, useLogout)
+│   │   ├── users.ts           # Pengguna hooks (useGetUsers, useGetUser, useCreateUser, useUpdateUser, useDeleteUser, useResetUserPassword)
 │   │   ├── expenses.ts        # Pengeluaran hooks (useGetExpenses(filters?), useGetExpense, useCreateExpense, useUpdateExpense, useDeleteExpense)
 │   │   ├── products.ts        # Master Produk hooks (useGetProducts({ active? }), useGetProduct, useCreateProduct, useUpdateProduct, useDeleteProduct)
 │   │   ├── purchases.ts       # Bahan hooks (useGetPurchases(filters?), useGetPurchase, useCreatePurchase, useUpdatePurchase, useDeletePurchase)
@@ -88,16 +100,19 @@
 │   │   ├── unsold-items.ts    # Barang Tidak Terjual hooks (useGetUnsoldItems(filters?), useGetUnsoldItem, useCreateUnsoldItem, useUpdateUnsoldItem, useDeleteUnsoldItem)
 │   │   └── uploads.ts         # useUploadReceipt mutation (multipart/form-data POST)
 │   ├── fetch/                 # Client-side fetch helper (fetchApi, ApiError)
-│   ├── firebase/              # Firebase Admin SDK (server-only)
-│   │   ├── admin.ts           # Lazy-init Firestore + Storage singletons (getDb, getDefaultBucket)
-│   │   ├── storage.ts         # Upload/delete/signed URL helpers for Firebase Storage
-│   │   └── index.ts           # Barrel export
+│   ├── firebase/              # Firebase SDK initialization
+│   │   ├── admin.ts           # Server-only — Lazy-init Firestore + Storage singletons (getDb, getDefaultBucket)
+│   │   ├── client.ts          # CLIENT-ONLY (no `server-only` import) — Web SDK init for sign-in/out
+│   │   ├── storage.ts         # Server-only — Upload/delete/signed URL helpers for Firebase Storage
+│   │   └── index.ts           # Barrel export (server-only re-exports)
 │   ├── formatters/            # Display formatting utilities
 │   │   ├── date.ts            # Date formatters using date-fns (Unix timestamps → display strings)
 │   │   ├── index.ts           # Re-exports all formatters
 │   │   └── number.ts          # Number formatters (currency, compact, percent, bytes)
 │   ├── repositories/          # Firestore data access layer per resource (server-only)
 │   │   ├── accounts/          # AccountsRepository (extends BaseRepository<Account>) + findByCode
+│   │   ├── base-repository.ts # BaseEntity (with optional createdBy/updatedBy Actor) + Actor type + BaseRepository<T> generic CRUD
+│   │   ├── users/             # UsersRepository — createWithId (Firebase UID = doc ID), findByEmail, countAdmins
 │   │   ├── expenses/          # ExpensesRepository + findByDateRange + findByCategory
 │   │   ├── products/          # ProductsRepository + findActive
 │   │   ├── purchases/         # PurchasesRepository + findByDateRange
@@ -112,6 +127,7 @@
 │   │   └── index.ts           # Re-exports base helpers
 │   ├── use-cases/             # Business logic layer (server-only) — orchestrates repositories
 │   │   ├── accounts/          # createAccount, listAccounts, getAccount, updateAccount, deleteAccount (with reference guard across sales/purchases/salaries/expenses) + AccountNotFoundError + AccountInUseError
+│   │   ├── users/             # createUser (Firebase Auth + Firestore dual-write with rollback), listUsers, getUser, updateUser (last-admin guard), deleteUser (self + last-admin guards), resetUserPassword (10-char temp + mustChangePassword=true) + 4 typed errors
 │   │   ├── expenses/          # createExpense, listExpenses({ category?, from?, to? }), getExpense, updateExpense, deleteExpense (cleans receipt) + ExpenseNotFoundError
 │   │   ├── products/          # createProduct, listProducts({ active? }), getProduct, updateProduct, deleteProduct + ProductNotFoundError
 │   │   ├── purchases/         # createPurchase, listPurchases({ from?, to? }), getPurchase, updatePurchase, deletePurchase (cleans receipt) + PurchaseNotFoundError
@@ -129,14 +145,15 @@
 │   └── setup-project.mjs      # Interactive project setup (name, tagline, backend URL)
 ├── types/                     # TypeScript type definitions & interfaces
 │   ├── accounts.ts            # Account, AccountType, payloads + Zod schemas + accountTypeLabels
-│   ├── auth.ts                # Auth types (User, UserRole, LoginPayload, LoginResponse, AuthState)
+│   ├── auth.ts                # Auth flow types (LoginPayload + Zod, LoginResponse, AuthState) — re-exports User from users.ts
 │   ├── expenses.ts            # Expense, ExpenseCategory, payloads + Zod schemas + expenseCategoryLabels
 │   ├── products.ts            # Product, ProductCategory, payloads + Zod schemas + productCategoryLabels
 │   ├── purchases.ts           # Purchase, payloads + Zod schemas
 │   ├── reports.ts             # PeriodSummary, AccountBalanceItem, TopProductItem, TopUnsoldProductItem, ExpenseBreakdownItem (DTO types only)
 │   ├── salaries.ts            # Salary (with YYYY-MM period), payloads + Zod schemas
 │   ├── sales.ts               # Sale (with productName/unitPrice snapshot), payloads + Zod schemas
-│   └── unsold-items.ts        # UnsoldItem (date as YYYY-MM-DD string), UnsoldReason enum, payloads + Zod schemas + unsoldReasonLabels
+│   ├── unsold-items.ts        # UnsoldItem (date as YYYY-MM-DD string), UnsoldReason enum, payloads + Zod schemas + unsoldReasonLabels
+│   └── users.ts               # User (extends BaseEntity, id=Firebase UID), UserRole, UserStatus, payloads + Zod schemas + userRoleLabels + userStatusLabels
 └── utils/                     # Helper functions
 ```
 
@@ -239,7 +256,9 @@ components/layouts/dashboard/
 ```
 components/shared/
 ├── action-bar.tsx              # Sticky bottom bar for page-level or bulk actions
+├── audit-tooltip.tsx           # Wraps cell content with tooltip showing createdBy/updatedBy info from BaseEntity
 ├── period-picker.tsx           # PeriodPicker (Hari Ini/Minggu Ini/Bulan Ini/Bulan Lalu) + getPeriodRange + formatPeriodRange helpers
+├── permission-guard.tsx        # Conditionally render children based on useAuth().can(permission) — UI sugar, NOT security
 ├── receipt-upload.tsx          # Image upload dropzone → POST /api/uploads → Firebase Storage
 ├── activity-log-card.tsx       # Section-headed list card for activity log entries with avatar, title, badge, timestamp
 ├── analysis-pipeline-card.tsx  # Expandable workflow card with step avatars, status badges, metrics
@@ -273,13 +292,48 @@ The root layout (`app/layout.tsx`) wraps all pages with:
 
 ## Auth System
 
-- **Types**: `types/auth.ts` — User, UserRole, LoginPayload, LoginResponse, AuthState
-- **Service**: `lib/services/auth/index.ts` — login, getCurrentUser, logout (dummy for now; to migrate to Firebase Auth)
-- **API Routes**: `app/api/auth/` — login (POST), me (GET), logout (POST) using httpOnly cookies
-- **Hooks**: `lib/api/auth.ts` — useCurrentUser, useLogin, useLogout (TanStack Query)
-- **Context**: `context/auth-provider.tsx` — AuthProvider + useAuth hook
-- **Login**: Form (Indonesian labels) uses useLogin mutation → redirects to /dashboard
-- **Logout**: NavUser calls useLogout → redirects to /auth/login
+Real Firebase Authentication. The flow:
+
+```
+[Login form] → signInWithEmailAndPassword (Firebase Web SDK)
+            → user.getIdToken()
+            → POST /api/auth/login { idToken }
+            → server: verifyIdToken (Firebase Admin) → lookup Firestore users/{uid}
+            → reject if profile missing or status="disabled"
+            → set httpOnly cookie 'auth-token' = ID token (7-day max-age)
+            → return { user } (Firestore profile)
+[Subsequent requests] cookie sent automatically
+            → /api/auth/me reads cookie → verifyIdToken → lookup → return profile
+[Logout] signOut (Firebase Web SDK) + POST /api/auth/logout → revokeRefreshTokens + clear cookie
+```
+
+**Components:**
+- **Types**: `types/auth.ts` — `User` (Firestore profile, id=Firebase UID), `UserRole` (`admin|manager|kasir|viewer`), `UserStatus`, `LoginPayload` + Zod, `userRoleLabels`
+- **Web SDK init**: `lib/firebase/client.ts` — singleton, exposed via `getFirebaseAuthClient()` (client-only)
+- **Admin SDK helpers**: `lib/services/auth/index.ts` — `verifyIdToken`, `revokeRefreshTokens` (server-only)
+- **User profile repo**: `lib/repositories/users/index.ts` — `usersRepository.findById(uid)` (Phase 02 extends with full CRUD)
+- **API Routes**: `app/api/auth/` — `login` (POST verifies token + sets cookie), `me` (GET verifies cookie), `logout` (POST revokes + clears)
+- **Hooks**: `lib/api/auth.ts` — `useCurrentUser`, `useLogin` (signs in via Web SDK first, then POSTs ID token), `useLogout`. Maps Firebase error codes to Indonesian messages.
+- **Context**: `context/auth-provider.tsx` — `AuthProvider` + `useAuth()` returning `{ user, isAuthenticated, isLoading }`. Phase 06 will add `role` + `can()` helper.
+- **Login form**: `components/features/login/login-form.tsx` — surfaces Firebase error messages via `login.error.message`.
+
+### Manual seed for first user (one-time)
+
+The very first admin must be seeded outside the app, since user-management UI doesn't ship until Phase 05:
+
+1. Firebase Console → Authentication → Add User → enter email + password
+2. Copy the new user's UID
+3. Firebase Console → Firestore → Create collection `users` → Document ID = UID → fields:
+   ```
+   email: "<email>"
+   displayName: "<nama>"
+   role: "admin"
+   status: "active"
+   mustChangePassword: false
+   createdAt: <unix-seconds-now>
+   updatedAt: <unix-seconds-now>
+   ```
+4. Login at `/auth/login` with the same credentials → redirected to `/dashboard`
 
 ## Auth Layout Features
 
@@ -290,10 +344,11 @@ The root layout (`app/layout.tsx`) wraps all pages with:
 ## Dashboard Layout Features
 
 - **Sidebar**: White background, collapsible with icon mode, brand header with tooltip on collapse, active state (Oxford Blue bg) via usePathname
-- **Navigation**: 9 menu finance dalam 3 grup:
+- **Navigation**: menu dalam 4 grup (Phase 06 of `auth-and-rbac` will filter per role):
   - **Utama**: Dashboard, Penjualan, Bahan, Gaji, Pengeluaran, Barang Tidak Terjual
   - **Master**: Master Produk, Rekening
   - **Laporan**: Laporan
+  - **Pengaturan**: Pengguna (Admin-only)
 - **Header**: White background (`bg-card`), sticky with page title or breadcrumbs, command palette trigger (⌘K), notification sheet with count badge
 - **Page Header**: Reusable section header (Roboto Condensed title, description, back button, optional action) — semua label Indonesian
 - **User Menu**: Akun, Notifikasi, Mode Terang/Gelap, Keluar — semua dalam Bahasa Indonesia

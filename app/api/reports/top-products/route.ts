@@ -1,6 +1,7 @@
+import { withAuth } from "@/lib/auth"
 import { getTopProducts } from "@/lib/use-cases/reports"
 
-export async function GET(request: Request) {
+export const GET = withAuth(async (request) => {
   try {
     const { searchParams } = new URL(request.url)
     const from = Number(searchParams.get("from"))
@@ -14,4 +15,4 @@ export async function GET(request: Request) {
   } catch {
     return Response.json({ error: "Gagal memuat produk terlaris." }, { status: 500 })
   }
-}
+}, { permission: "reports:read" })

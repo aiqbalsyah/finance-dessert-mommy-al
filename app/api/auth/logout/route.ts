@@ -1,12 +1,20 @@
 import { cookies } from "next/headers"
 
-export async function POST() {
-  try {
-    const cookieStore = await cookies()
-    cookieStore.delete("auth-token")
+import { revokeRefreshTokens, verifyIdToken } from "@/lib/services/auth"
 
-    return Response.json({ success: true })
-  } catch {
-    return Response.json({ error: "Logout failed" }, { status: 500 })
+export async function POST() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get("auth-token")?.value
+
+  if (token) {
+    try {
+      const decoded = await verifyIdToken(token)
+      await revokeRefreshTokens(decoded.uid).catch(() => undefined)
+    } catch {
+      // Token invalid — proceed with cookie clear anyway.
+    }
   }
+
+  cookieStore.delete("auth-token")
+  return Response.json({ success: true })
 }

@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { useLogin } from "@/lib/api/auth"
+import { useForgotPassword, useLogin } from "@/lib/api/auth"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -26,6 +27,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter()
   const login = useLogin()
+  const forgotPassword = useForgotPassword()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
@@ -35,6 +37,16 @@ export function LoginForm({
       { email, password },
       { onSuccess: () => router.push("/dashboard") },
     )
+  }
+
+  function handleForgotPassword() {
+    const target = email.trim() || window.prompt("Masukkan email akun Anda:")?.trim()
+    if (!target) return
+    forgotPassword.mutate(target, {
+      onSuccess: () => {
+        toast.success(`Tautan reset kata sandi telah dikirim ke ${target}.`)
+      },
+    })
   }
 
   return (
@@ -63,12 +75,14 @@ export function LoginForm({
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Kata Sandi</FieldLabel>
-                  <a
-                    href="#"
-                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    disabled={forgotPassword.isPending}
+                    className="ml-auto text-sm underline-offset-4 hover:underline disabled:opacity-60"
                   >
-                    Lupa kata sandi?
-                  </a>
+                    {forgotPassword.isPending ? "Mengirim..." : "Lupa kata sandi?"}
+                  </button>
                 </div>
                 <Input
                   id="password"
@@ -84,7 +98,7 @@ export function LoginForm({
                 </Button>
                 {login.isError && (
                   <p className="text-sm text-destructive text-center">
-                    Gagal masuk. Silakan coba lagi.
+                    {login.error instanceof Error ? login.error.message : "Gagal masuk. Silakan coba lagi."}
                   </p>
                 )}
               </Field>

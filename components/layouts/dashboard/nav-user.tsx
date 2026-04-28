@@ -22,8 +22,18 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Icon } from "@/components/shared/icon"
+import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/context/auth-provider"
 import { useLogout } from "@/lib/api/auth"
 import { useRouter } from "next/navigation"
+import { userRoleLabels, type UserRole } from "@/types/users"
+
+const roleVariant: Record<UserRole, "destructive" | "info" | "success" | "muted"> = {
+  admin: "destructive",
+  manager: "info",
+  kasir: "success",
+  viewer: "muted",
+}
 
 export function NavUser({
   user,
@@ -34,6 +44,7 @@ export function NavUser({
     avatar: string
   }
 }) {
+  const { role } = useAuth()
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
   const router = useRouter()
@@ -80,19 +91,20 @@ export function NavUser({
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
                     <span className="truncate text-xs">{user.email}</span>
+                    {role && (
+                      <Badge variant={roleVariant[role]} className="mt-1 w-fit">
+                        {userRoleLabels[role]}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Icon name="verified" />
-                Akun
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Icon name="notifications" />
-                Notifikasi
+              <DropdownMenuItem onClick={() => router.push("/pengaturan/profil")}>
+                <Icon name="account_circle" />
+                Profil
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

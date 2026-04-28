@@ -3,6 +3,8 @@
 import { useMemo } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 
+import { useAuth } from "@/context/auth-provider"
+import { AuditTooltip } from "@/components/shared/audit-tooltip"
 import { Icon } from "@/components/shared/icon"
 import { DataTableCard } from "@/components/shared/data-table-card"
 import { Badge } from "@/components/ui/badge"
@@ -26,6 +28,9 @@ interface PengeluaranTableProps {
 }
 
 export function PengeluaranTable({ data, accounts, onEdit, onDelete }: PengeluaranTableProps) {
+  const { can } = useAuth()
+  const canEdit = can("expenses:update")
+  const canDelete = can("expenses:delete")
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
 
   const columns = useMemo<ColumnDef<Expense>[]>(
@@ -34,7 +39,14 @@ export function PengeluaranTable({ data, accounts, onEdit, onDelete }: Pengeluar
         accessorKey: "spentAt",
         header: "Tanggal",
         cell: ({ row }) => (
-          <span className="whitespace-nowrap">{formatDate(row.getValue<number>("spentAt"))}</span>
+          <AuditTooltip
+            createdAt={row.original.createdAt}
+            updatedAt={row.original.updatedAt}
+            createdBy={row.original.createdBy}
+            updatedBy={row.original.updatedBy}
+          >
+            <span className="whitespace-nowrap">{formatDate(row.getValue<number>("spentAt"))}</span>
+          </AuditTooltip>
         ),
       },
       {
@@ -101,6 +113,9 @@ export function PengeluaranTable({ data, accounts, onEdit, onDelete }: Pengeluar
         enableHiding: false,
         cell: ({ row }) => {
           const expense = row.original
+          if (!canEdit && !canDelete) {
+            return <span className="text-xs text-muted-foreground">—</span>
+          }
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -112,17 +127,21 @@ export function PengeluaranTable({ data, accounts, onEdit, onDelete }: Pengeluar
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onEdit(expense)}>
-                      <Icon name="edit" size={16} />
-                      Ubah
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(expense)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Icon name="delete" size={16} />
-                      Hapus
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(expense)}>
+                        <Icon name="edit" size={16} />
+                        Ubah
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(expense)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Icon name="delete" size={16} />
+                        Hapus
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -131,7 +150,7 @@ export function PengeluaranTable({ data, accounts, onEdit, onDelete }: Pengeluar
         },
       },
     ],
-    [accountMap, onEdit, onDelete]
+    [accountMap, onEdit, onDelete, canEdit, canDelete]
   )
 
   return (

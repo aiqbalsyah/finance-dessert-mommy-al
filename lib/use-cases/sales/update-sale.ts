@@ -1,17 +1,22 @@
 import "server-only"
 
+import type { Actor } from "@/lib/repositories"
 import { productsRepository } from "@/lib/repositories/products"
 import { salesRepository } from "@/lib/repositories/sales"
 import { saleUpdateSchema, type Sale, type UpdateSalePayload } from "@/types/sales"
 
 import { SaleNotFoundError } from "./get-sale"
 
-export async function updateSale(id: string, payload: UpdateSalePayload): Promise<Sale> {
+export async function updateSale(
+  id: string,
+  payload: UpdateSalePayload,
+  actor: Actor
+): Promise<Sale> {
   const parsed = saleUpdateSchema.parse(payload)
   const existing = await salesRepository.findById(id)
   if (!existing) throw new SaleNotFoundError(id)
 
-  const updates: Partial<Sale> = {}
+  const updates: Partial<Sale> = { updatedBy: actor }
 
   if (parsed.productId !== undefined && parsed.productId !== existing.productId) {
     const product = await productsRepository.findById(parsed.productId)

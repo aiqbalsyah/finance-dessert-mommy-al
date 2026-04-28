@@ -43,10 +43,38 @@
 - **No Redux** — not needed with TanStack Query
 
 ## Auth
-- Auth state provided via `useAuth()` hook from `context/auth-provider.tsx`
-- Login/logout via `useLogin()` / `useLogout()` mutations from `lib/api/auth.ts`
-- Auth token stored in httpOnly cookie (set by API route, never client-side)
+- Auth state provided via `useAuth()` hook from `context/auth-provider.tsx` → `{ user: User | null, isAuthenticated, isLoading }`. `User` includes `role` (Phase 06 of `auth-and-rbac` will add `can()` helper).
+- Login flow: client calls `signInWithEmailAndPassword` (Firebase Web SDK from `@/lib/firebase/client`) → POSTs the resulting ID token to `/api/auth/login` → server verifies + sets httpOnly cookie.
+- Logout: `useLogout()` calls `signOut` (Web SDK) AND POSTs to `/api/auth/logout` (server revokes refresh tokens + clears cookie).
+- Cookie name: `auth-token`; httpOnly + secure (prod) + sameSite=lax + 7-day max-age.
 - Query key constants defined per resource (e.g., `authKeys.me`)
+
+### First-login flow (`mustChangePassword`)
+
+When an admin creates a user (or resets their password), the Firestore profile is written with `mustChangePassword: true` and a temp password is shown once. On subsequent login:
+
+1. `auth-provider.tsx` watches `user.mustChangePassword` + `usePathname()`. If true and the user is NOT on `/auth/login` or `/pengaturan/profil`, it `router.replace("/pengaturan/profil?force=true")`.
+2. `profil-content.tsx` reads `?force=true` (via `useSearchParams`, wrapped in `<Suspense>`) and auto-opens `<UbahKataSandiDialog>` with a banner: "Anda harus mengubah kata sandi sebelum melanjutkan." The dialog's close button is hidden in forced mode.
+3. The dialog calls `useChangePassword()` (`lib/api/auth.ts`) which: (a) re-authenticates with `EmailAuthProvider.credential(email, currentPassword)` — Firebase requires recent login for `updatePassword`; (b) calls `updatePassword(user, newPassword)`; (c) POSTs `/api/auth/clear-must-change-password` to flip the Firestore flag.
+4. After success, `authKeys.me` is invalidated → `mustChangePassword` becomes `false` → the redirect effect no longer fires → user can navigate freely.
+
+Forgot-password: `useForgotPassword()` calls `sendPasswordResetEmail` and **always** reports success via toast (even on Firebase error) — never leak which emails exist in the system.
+
+## Authorization
+
+Every API route in `app/api/` MUST be wrapped with `withAuth` from `@/lib/auth`. Even read-only "everyone can access" routes use `{ allowAny: true }` instead of leaving the route unwrapped — explicit > implicit. If you create a route without `withAuth`, it is anonymously accessible — that's a security bug. Code review must catch this.
+
+Exceptions (intentionally unwrapped):
+- `app/api/auth/login` — entry point, no cookie yet
+- `app/api/auth/logout` — clearing cookie should always work, even with invalid session
+
+Permission strings: `<resource>:<action>` (e.g. `"accounts:read"`, `"sales:create"`). Special: `"users:manage"` (Admin-only), `"uploads:write"`. Full matrix lives in `lib/auth/permissions.ts`.
+
+### 401 → auto-logout
+
+`QueryProvider` (`context/query-provider.tsx`) installs a `QueryCache.onError` handler that detects `ApiError` with `status === 401` and clears `authKeys.me` from the cache. This means: if any API call returns 401 mid-session (e.g. cookie expired, user disabled by admin), `useAuth()` instantly transitions to logged-out state. The login page should be reachable from any route without manual redirect (use a layout-level effect or middleware for the actual redirect — Phase 06 wires this).
+
+The 401 handler skips the `auth/me` query itself to avoid loops (that query naturally returning 401 means "no session" — already handled).
 
 ## Data Fetching
 - Components never call Firestore or Storage directly — always lewat API route
@@ -118,6 +146,7 @@ All display formatting uses shared formatters from `lib/formatters/`. Never use 
 ### Data Conventions
 - **Numbers** from backend arrive as `integer` or `decimal` — use number formatters for display
 - **Dates** from backend arrive as **Unix timestamps (seconds)** — use date formatters for display
+- **Audit fields** (`createdBy`, `updatedBy`) are denormalized snapshots: `{ userId, userName }`. Storing the name (not just FK) preserves historical accuracy even if the user is later renamed or deleted. Pre-audit-trail rows may have these fields missing — UI must handle `undefined` gracefully.
 
 ### Number Formatters (`lib/formatters/number.ts`)
 

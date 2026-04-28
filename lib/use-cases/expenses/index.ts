@@ -1,6 +1,7 @@
 import "server-only"
 
 import { deleteFile } from "@/lib/firebase"
+import type { Actor } from "@/lib/repositories"
 import { expensesRepository } from "@/lib/repositories/expenses"
 import {
   expenseCreateSchema,
@@ -22,7 +23,7 @@ function cleanOptional(value: string | undefined): string | undefined {
   return value?.trim() ? value.trim() : undefined
 }
 
-export async function createExpense(payload: CreateExpensePayload): Promise<Expense> {
+export async function createExpense(payload: CreateExpensePayload, actor: Actor): Promise<Expense> {
   const parsed = expenseCreateSchema.parse(payload)
   return expensesRepository.create({
     category: parsed.category,
@@ -33,6 +34,8 @@ export async function createExpense(payload: CreateExpensePayload): Promise<Expe
     receiptUrl: parsed.receiptUrl,
     receiptPath: parsed.receiptPath,
     note: cleanOptional(parsed.note),
+    createdBy: actor,
+    updatedBy: actor,
   })
 }
 
@@ -62,12 +65,16 @@ export async function getExpense(id: string): Promise<Expense> {
   return expense
 }
 
-export async function updateExpense(id: string, payload: UpdateExpensePayload): Promise<Expense> {
+export async function updateExpense(
+  id: string,
+  payload: UpdateExpensePayload,
+  actor: Actor
+): Promise<Expense> {
   const parsed = expenseUpdateSchema.parse(payload)
   const existing = await expensesRepository.findById(id)
   if (!existing) throw new ExpenseNotFoundError(id)
 
-  const updates: Partial<Expense> = {}
+  const updates: Partial<Expense> = { updatedBy: actor }
   if (parsed.category !== undefined) updates.category = parsed.category
   if (parsed.description !== undefined) updates.description = parsed.description.trim()
   if (parsed.amount !== undefined) updates.amount = parsed.amount

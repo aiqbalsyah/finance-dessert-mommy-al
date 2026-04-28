@@ -3,6 +3,8 @@
 import { useMemo } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 
+import { useAuth } from "@/context/auth-provider"
+import { AuditTooltip } from "@/components/shared/audit-tooltip"
 import { Icon } from "@/components/shared/icon"
 import { DataTableCard } from "@/components/shared/data-table-card"
 import { Button } from "@/components/ui/button"
@@ -36,6 +38,9 @@ function formatPeriod(period: string): string {
 }
 
 export function GajiTable({ data, accounts, onEdit, onDelete }: GajiTableProps) {
+  const { can } = useAuth()
+  const canEdit = can("salaries:update")
+  const canDelete = can("salaries:delete")
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
 
   const columns = useMemo<ColumnDef<Salary>[]>(
@@ -44,7 +49,14 @@ export function GajiTable({ data, accounts, onEdit, onDelete }: GajiTableProps) 
         accessorKey: "paidAt",
         header: "Tanggal",
         cell: ({ row }) => (
-          <span className="whitespace-nowrap">{formatDate(row.getValue<number>("paidAt"))}</span>
+          <AuditTooltip
+            createdAt={row.original.createdAt}
+            updatedAt={row.original.updatedAt}
+            createdBy={row.original.createdBy}
+            updatedBy={row.original.updatedBy}
+          >
+            <span className="whitespace-nowrap">{formatDate(row.getValue<number>("paidAt"))}</span>
+          </AuditTooltip>
         ),
       },
       {
@@ -105,6 +117,9 @@ export function GajiTable({ data, accounts, onEdit, onDelete }: GajiTableProps) 
         enableHiding: false,
         cell: ({ row }) => {
           const salary = row.original
+          if (!canEdit && !canDelete) {
+            return <span className="text-xs text-muted-foreground">—</span>
+          }
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -116,17 +131,21 @@ export function GajiTable({ data, accounts, onEdit, onDelete }: GajiTableProps) 
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onEdit(salary)}>
-                      <Icon name="edit" size={16} />
-                      Ubah
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(salary)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Icon name="delete" size={16} />
-                      Hapus
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(salary)}>
+                        <Icon name="edit" size={16} />
+                        Ubah
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(salary)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Icon name="delete" size={16} />
+                        Hapus
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -135,7 +154,7 @@ export function GajiTable({ data, accounts, onEdit, onDelete }: GajiTableProps) 
         },
       },
     ],
-    [accountMap, onEdit, onDelete]
+    [accountMap, onEdit, onDelete, canEdit, canDelete]
   )
 
   return (

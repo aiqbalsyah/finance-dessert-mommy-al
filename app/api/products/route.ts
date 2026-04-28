@@ -1,9 +1,10 @@
 import { ZodError } from "zod"
 
+import { withAuth } from "@/lib/auth"
 import { createProduct, listProducts } from "@/lib/use-cases/products"
 import type { CreateProductPayload } from "@/types/products"
 
-export async function GET(request: Request) {
+export const GET = withAuth(async (request) => {
   try {
     const { searchParams } = new URL(request.url)
     const active = searchParams.get("active") === "true" ? true : undefined
@@ -12,12 +13,12 @@ export async function GET(request: Request) {
   } catch {
     return Response.json({ error: "Gagal memuat daftar produk." }, { status: 500 })
   }
-}
+}, { permission: "products:read" })
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, _ctx, user) => {
   try {
     const body = (await request.json()) as CreateProductPayload
-    const data = await createProduct(body)
+    const data = await createProduct(body, { userId: user.id, userName: user.displayName })
     return Response.json(data, { status: 201 })
   } catch (error) {
     if (error instanceof ZodError) {
@@ -28,4 +29,4 @@ export async function POST(request: Request) {
     }
     return Response.json({ error: "Gagal membuat produk." }, { status: 500 })
   }
-}
+}, { permission: "products:create" })

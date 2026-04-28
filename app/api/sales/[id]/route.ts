@@ -1,5 +1,6 @@
 import { ZodError } from "zod"
 
+import { withAuth } from "@/lib/auth"
 import {
   SaleNotFoundError,
   deleteSale,
@@ -12,7 +13,7 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export const GET = withAuth<RouteContext>(async (_request, context) => {
   const { id } = await context.params
   try {
     const data = await getSale(id)
@@ -23,13 +24,13 @@ export async function GET(_request: Request, context: RouteContext) {
     }
     return Response.json({ error: "Gagal memuat penjualan." }, { status: 500 })
   }
-}
+}, { permission: "sales:read" })
 
-export async function PATCH(request: Request, context: RouteContext) {
+export const PATCH = withAuth<RouteContext>(async (request, context, user) => {
   const { id } = await context.params
   try {
     const body = (await request.json()) as UpdateSalePayload
-    const data = await updateSale(id, body)
+    const data = await updateSale(id, body, { userId: user.id, userName: user.displayName })
     return Response.json(data)
   } catch (error) {
     if (error instanceof SaleNotFoundError) {
@@ -44,9 +45,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     const message = error instanceof Error ? error.message : "Gagal mengubah penjualan."
     return Response.json({ error: message }, { status: 400 })
   }
-}
+}, { permission: "sales:update" })
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export const DELETE = withAuth<RouteContext>(async (_request, context) => {
   const { id } = await context.params
   try {
     await deleteSale(id)
@@ -57,4 +58,4 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
     return Response.json({ error: "Gagal menghapus penjualan." }, { status: 500 })
   }
-}
+}, { permission: "sales:delete" })

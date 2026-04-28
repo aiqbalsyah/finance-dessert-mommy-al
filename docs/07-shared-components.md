@@ -114,6 +114,93 @@ const [receipt, setReceipt] = useState<{ url?: string; path?: string }>({})
 
 ---
 
+## PermissionGuard
+
+**Import:** `@/components/shared/permission-guard`
+
+Conditionally renders children based on the current user's permissions (resolved via `useAuth().can()`). Use for action buttons (Tambah, Ubah, Hapus). For more complex UI logic (e.g. show button in disabled state with tooltip), use `useAuth().can()` inline instead.
+
+> **NOTE:** This is UI sugar only. The real security boundary is `withAuth` in API routes — never trust the client-side check alone.
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `permission` | `Permission` | required | Permission required to render `children`. See `lib/auth/permissions-matrix.ts` for the full union. |
+| `fallback` | `ReactNode` | `null` | Rendered when the user lacks the permission. Defaults to `null` (hide). |
+| `children` | `ReactNode` | required | Content to render when the permission is granted. |
+
+### Usage — wrap a button
+
+```tsx
+<PermissionGuard permission="sales:create">
+  <Button onClick={handleAdd}>
+    <Icon name="add" size={16} />
+    Tambah Penjualan
+  </Button>
+</PermissionGuard>
+```
+
+### Usage — with fallback
+
+```tsx
+<PermissionGuard
+  permission="users:manage"
+  fallback={<p className="text-sm text-muted-foreground">Hanya admin yang dapat melihat ini.</p>}
+>
+  <UsersTable />
+</PermissionGuard>
+```
+
+For dropdown items in tables, prefer `useAuth().can()` inline so you can control individual items + the trigger visibility.
+
+---
+
+## AuditTooltip
+
+**Import:** `@/components/shared/audit-tooltip`
+
+Wraps cell content with a tooltip showing `createdBy` / `updatedBy` audit info from `BaseEntity`. Used in transaction tables on the Tanggal column, and in master tables on the Nama column.
+
+If both `createdBy` and `updatedBy` are absent (pre-audit-trail rows), the tooltip is suppressed and children render unchanged.
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `createdAt` | `number` | required | Unix timestamp (seconds) of doc creation |
+| `updatedAt` | `number` | required | Unix timestamp (seconds) of last update |
+| `createdBy` | `Actor \| undefined` | — | `{ userId, userName }` snapshot of creator |
+| `updatedBy` | `Actor \| undefined` | — | `{ userId, userName }` snapshot of last editor |
+| `children` | `ReactNode` | required | The cell content to wrap |
+
+### Behavior
+
+- Shows "Dibuat oleh X • {relative time}" when `createdBy` is set
+- Additionally shows "Diubah oleh Y • {relative time}" when `updatedBy` differs from `createdBy` (different user OR more than 60 seconds after creation)
+- Trigger renders `children` with subtle dotted underline + cursor-help to hint at the tooltip
+
+### Usage — TanStack Table cell
+
+```tsx
+{
+  accessorKey: "soldAt",
+  header: "Tanggal",
+  cell: ({ row }) => (
+    <AuditTooltip
+      createdAt={row.original.createdAt}
+      updatedAt={row.original.updatedAt}
+      createdBy={row.original.createdBy}
+      updatedBy={row.original.updatedBy}
+    >
+      <span>{formatDate(row.getValue<number>("soldAt"))}</span>
+    </AuditTooltip>
+  ),
+}
+```
+
+---
+
 ## PageHeader
 
 **Import:** `@/components/layouts/dashboard/page-header`

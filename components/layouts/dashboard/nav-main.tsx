@@ -18,12 +18,16 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { Icon } from "@/components/shared/icon"
+import { useAuth } from "@/context/auth-provider"
+import type { Permission } from "@/lib/auth/permissions-matrix"
 
 export interface NavItem {
   title: string
   url: string
   icon?: React.ReactNode
   isActive?: boolean
+  /** If set, item only renders when current user has this permission. */
+  requiredPermission?: Permission
   items?: {
     title: string
     url: string
@@ -37,10 +41,21 @@ export interface NavGroup {
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
   const pathname = usePathname()
+  const { can } = useAuth()
+
+  // Filter items by required permission, then drop empty groups.
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.requiredPermission || can(item.requiredPermission)
+      ),
+    }))
+    .filter((group) => group.items.length > 0)
 
   return (
     <>
-      {groups.map((group) => (
+      {visibleGroups.map((group) => (
         <SidebarGroup key={group.label}>
           <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/40">
             {group.label}

@@ -1,6 +1,7 @@
+import { withAuth } from "@/lib/auth"
 import { getPeriodSummary } from "@/lib/use-cases/reports"
 
-export async function GET(request: Request) {
+export const GET = withAuth(async (request) => {
   try {
     const { searchParams } = new URL(request.url)
     const from = Number(searchParams.get("from"))
@@ -13,4 +14,4 @@ export async function GET(request: Request) {
   } catch {
     return Response.json({ error: "Gagal memuat ringkasan periode." }, { status: 500 })
   }
-}
+}, { permission: "reports:read" })

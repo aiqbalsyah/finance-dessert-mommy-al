@@ -1,3 +1,4 @@
+import { withAuth } from "@/lib/auth"
 import { InvalidReceiptError, uploadReceipt } from "@/lib/use-cases/uploads"
 
 const ALLOWED_FOLDERS = new Set([
@@ -14,7 +15,7 @@ function buildFolderPath(folder: string): string {
   return `${folder}/${year}/${month}`
 }
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request) => {
   try {
     const formData = await request.formData()
     const file = formData.get("file")
@@ -41,6 +42,6 @@ export async function POST(request: Request) {
     }
     return Response.json({ error: "Gagal mengunggah berkas." }, { status: 500 })
   }
-}
+}, { permission: "uploads:write" })
 
 export const runtime = "nodejs"

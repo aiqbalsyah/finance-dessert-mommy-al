@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { DashboardHeader } from "@/components/layouts/dashboard/dashboard-header"
 import { PageHeader } from "@/components/layouts/dashboard/page-header"
 import { Icon } from "@/components/shared/icon"
+import { PermissionGuard } from "@/components/shared/permission-guard"
 import { StateCard } from "@/components/shared/state-card"
 import {
   AlertDialog,
@@ -80,10 +81,12 @@ export function PenjualanContent() {
           description="Catat dan kelola transaksi penjualan."
           showBack={false}
           action={
-            <Button onClick={handleAdd}>
-              <Icon name="add" size={16} />
-              Tambah Penjualan
-            </Button>
+            <PermissionGuard permission="sales:create">
+              <Button onClick={handleAdd}>
+                <Icon name="add" size={16} />
+                Tambah Penjualan
+              </Button>
+            </PermissionGuard>
           }
         />
 

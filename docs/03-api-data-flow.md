@@ -346,6 +346,61 @@ The page (`app/(dashboard)/rekening/page.tsx`) is thin — just imports `Rekenin
 
 The orchestrator handles loading/error/success states and shows toast notifications in Indonesian after mutations. Delete confirmation uses `<AlertDialog>` to prevent accidental deletion.
 
+## Audit trail (`createdBy` / `updatedBy`)
+
+`BaseEntity` includes optional `createdBy` and `updatedBy` fields of type `Actor` (`{ userId, userName }`). Every create/update use case takes an `actor` argument and writes the snapshot to the doc. Reads are not audited.
+
+### Why optional?
+
+Pre-audit-trail rows have no `createdBy`. Making the fields optional means historical data renders without backfill. UI components handle `undefined` gracefully — `<AuditTooltip>` suppresses the tooltip when both fields are absent.
+
+### Why pass `actor` explicitly?
+
+Use cases stay pure — no implicit dependency on request context, easier to unit-test (just pass a mock actor). The API route is the boundary that knows about HTTP/auth.
+
+### Pattern — use case
+
+```ts
+import type { Actor } from "@/lib/repositories"
+
+export async function createSale(payload: CreateSalePayload, actor: Actor): Promise<Sale> {
+  const parsed = saleCreateSchema.parse(payload)
+  // ...
+  return salesRepository.create({
+    // ...domain fields
+    createdBy: actor,
+    updatedBy: actor,
+  })
+}
+
+export async function updateSale(id: string, payload: UpdateSalePayload, actor: Actor): Promise<Sale> {
+  // ...
+  const updates: Partial<Sale> = { updatedBy: actor }
+  // ...rest of merge
+  return salesRepository.update(id, updates)
+}
+```
+
+### Pattern — API route
+
+The current user comes from the `withAuth` callback's third argument:
+
+```ts
+export const POST = withAuth(async (request, _ctx, user) => {
+  const body = await request.json()
+  const data = await createSale(body, { userId: user.id, userName: user.displayName })
+  return Response.json(data, { status: 201 })
+}, { permission: "sales:create" })
+```
+
+### Snapshot vs FK
+
+`Actor` stores `{ userId, userName }` denormalized — preserves the name even after the user is renamed or deleted. Trade-off: rename doesn't propagate to old records (acceptable; the audit IS the historical fact).
+
+### Surfacing in UI
+
+Use `<AuditTooltip>` from `@/components/shared/audit-tooltip` to wrap cell content (typically the Tanggal column). Tooltip shows "Dibuat oleh X • 2 jam yang lalu" plus "Diubah oleh Y • 30 menit yang lalu" if the row was edited after creation.
+
 ## Aggregation queries (`lib/use-cases/reports/`)
 
 Reporting aggregations live in their **own use cases**, separate from per-resource use cases. They orchestrate multiple repositories and compute totals in memory.
@@ -452,6 +507,107 @@ Use the shared `<ReceiptUpload>` component (`components/shared/receipt-upload.ts
   }}
 />
 ```
+
+## Authentication flow
+
+The app uses Firebase Authentication (email + password). The session is anchored by an httpOnly cookie carrying a Firebase ID token, verified server-side on every request.
+
+```
+[Client]                                                     [Server]                                [Firebase]
+LoginForm.handleSubmit
+  ↓
+useLogin mutation
+  ↓
+signInWithEmailAndPassword (Firebase Web SDK) ─────────────────────────────────────────────────►  authenticate
+  ↓
+user.getIdToken()
+  ↓
+POST /api/auth/login { idToken } ─────────────►  verifyIdToken (Admin SDK) ────────────────────►  validate
+                                                  ↓
+                                                  usersRepository.findById(uid) (Firestore users/{uid})
+                                                  ↓
+                                                  set 'auth-token' httpOnly cookie + return { user }
+  ↓
+queryClient.setQueryData(authKeys.me, user)
+redirect to /dashboard
+
+[Subsequent navigations]
+GET /api/auth/me ──────────────────────────────►  read cookie → verifyIdToken → findById → return profile
+```
+
+The cookie is sent automatically with every request to the same domain. Server-side handlers verify it via `verifyIdToken` from `@/lib/services/auth` (which calls Firebase Admin SDK against Google's public keys). The cookie is the transport, but the source of truth is the verified token + the Firestore user profile.
+
+### Why ID token instead of session cookie?
+
+Firebase Auth supports two patterns: short-lived ID tokens (1 hour) auto-refreshed by the Web SDK, OR long-lived session cookies via `createSessionCookie`. We use the **ID token** approach for MVP simplicity:
+- Token in cookie → verified on each request
+- Web SDK auto-refreshes the in-memory token
+- 7-day cookie max-age is OK for SMB use; `verifyIdToken` will reject expired tokens regardless of cookie age
+
+For high-traffic apps, consider switching to session cookies (longer expiry, fewer round trips).
+
+### Indonesian error messages
+
+`lib/api/auth.ts` maps Firebase error codes to Indonesian messages:
+
+| Firebase code | Pesan |
+|---|---|
+| `auth/invalid-credential`, `auth/user-not-found`, `auth/wrong-password` | "Email atau kata sandi salah." |
+| `auth/invalid-email` | "Format email tidak valid." |
+| `auth/user-disabled` | "Akun Anda telah dinonaktifkan. Hubungi administrator." |
+| `auth/too-many-requests` | "Terlalu banyak percobaan login. Coba lagi beberapa menit lagi." |
+| `auth/network-request-failed` | "Tidak dapat terhubung ke server. Periksa koneksi internet Anda." |
+
+Server-side errors (from `/api/auth/login`) return Indonesian messages directly in the JSON body.
+
+## RBAC: protecting API routes
+
+All API routes (except `/api/auth/login` and `/api/auth/logout`) MUST be wrapped with `withAuth()` from `@/lib/auth`. The wrapper handles 401 (no session) and 403 (wrong role) before the handler runs, so the handler can trust that the resolved `user` is valid and authorized.
+
+### Pattern
+
+```ts
+import { withAuth } from "@/lib/auth"
+import { listAccounts } from "@/lib/use-cases/accounts"
+
+export const GET = withAuth(async (request, ctx, user) => {
+  const data = await listAccounts()
+  return Response.json(data)
+}, { permission: "accounts:read" })
+```
+
+The handler signature is `(request, context, user)` where `user` is the resolved Firestore profile (`User` type, includes `role`).
+
+### Options
+
+- `{ permission: "accounts:read" }` — require this specific permission. 403 if user's role doesn't have it.
+- `{ allowAny: true }` — only require a valid logged-in user; no role check. Used for `/api/auth/me`.
+- `{}` (no options) — same as `allowAny: true`. Prefer being explicit.
+
+### Permissions
+
+Permission strings follow `<resource>:<action>` (e.g., `"accounts:create"`, `"sales:delete"`). Special keys: `"users:manage"` (Admin-only user CRUD), `"uploads:write"` (file uploads). The full matrix lives in `lib/auth/permissions.ts` and mirrors the table in `docs/planning/auth-and-rbac/README.md`.
+
+### Helpers (server-only)
+
+```ts
+import { getCurrentUser, requireUser, can, requirePermission } from "@/lib/auth"
+
+// In a server component or server action:
+const user = await getCurrentUser()       // null if not logged in
+const user2 = await requireUser()         // throws UnauthorizedError if null
+const allowed = can(user.role, "sales:create")  // boolean
+requirePermission(user.role, "accounts:delete") // throws ForbiddenError if denied
+```
+
+`getCurrentUser()` is wrapped in `React.cache`, so multiple callers in the same request share one Firestore lookup + token verification.
+
+### Error mapping
+
+`UnauthorizedError` → 401 (handled inside `withAuth`)
+`ForbiddenError` → 403 (handled inside `withAuth`)
+
+If your use case throws `ForbiddenError` for business-logic reasons (e.g., last-admin guard already throws `LastAdminError` instead), map them in the route catch block as needed. The convention: 401 means "log in again", 403 means "you can't do this even after re-login".
 
 ## Auth Context (`context/auth-provider.tsx`)
 

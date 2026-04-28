@@ -67,10 +67,12 @@ All skills enforce project architecture, read relevant docs before executing, an
 
 ## Auth
 
-- Auth context: `useAuth()` from `context/auth-provider.tsx` → `{ user, isAuthenticated, isLoading }`
-- Login/logout: `useLogin()` / `useLogout()` from `lib/api/auth.ts`
-- Auth token: httpOnly cookie (set by `app/api/auth/login/route.ts`)
-- Types: `types/auth.ts` (User, LoginPayload, LoginResponse, AuthState)
+- Real Firebase Authentication (email + password). Web SDK from `@/lib/firebase/client` (client-only), Admin SDK helpers in `lib/services/auth/`.
+- Auth context: `useAuth()` from `context/auth-provider.tsx` → `{ user, isAuthenticated, isLoading }`. `user.role` is one of `"admin" | "manager" | "kasir" | "viewer"`.
+- Login: `useLogin()` does Web SDK signIn → POST ID token to `/api/auth/login` → server verifies + sets httpOnly cookie + returns Firestore profile.
+- Logout: `useLogout()` does `signOut(authClient)` + POST `/api/auth/logout` (revokes + clears cookie).
+- User profile in Firestore `users/{uid}` (must exist before login — first admin seeded manually via Firebase Console; subsequent users via `/pengaturan/pengguna` after Phase 05 of `auth-and-rbac`).
+- Types: `types/auth.ts` (`User`, `UserRole`, `UserStatus`, `LoginPayload`, `loginPayloadSchema`).
 
 ## Docs
 

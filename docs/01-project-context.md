@@ -17,6 +17,7 @@ Dessert Mommyal Finance — Aplikasi pencatatan keuangan sederhana untuk penjual
 - **Charts:** Recharts
 - **Icons:** Google Material Symbols (Sharp, Grade 0, Fill Off, Weight 400, 24px optical size)
 - **Backend:** Firebase Admin SDK (Firestore + Storage) — server-side via Next.js API routes
+- **Auth:** Firebase Authentication (email + password) + Firestore `users` collection for profile/role; httpOnly cookie session
 - **Package Manager:** pnpm
 
 ## Fonts
@@ -34,6 +35,10 @@ Dessert Mommyal Finance — Aplikasi pencatatan keuangan sederhana untuk penjual
 | `NEXT_PUBLIC_APP_NAME`         | App name (shown in UI & metadata) | `Dessert Mommyal Finance` |
 | `NEXT_PUBLIC_APP_TAGLINE`      | App tagline (shown in sidebar header) | `Pencatatan Keuangan` |
 | `NEXT_PUBLIC_APP_DESCRIPTION`  | App description (shown in UI & metadata) | (lihat `.env.local`) |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web SDK API key (public — identifies project to client) | (Firebase Console → Project Settings → Web App config) |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Auth domain | `<project>.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID (client side) | `finance-dessert-mommyal` |
+| `NEXT_PUBLIC_FIREBASE_APP_ID`  | Firebase Web App ID      | (from Firebase Console)  |
 
 ### Firebase Admin (server-side only — JANGAN beri prefix `NEXT_PUBLIC_`)
 
@@ -62,18 +67,27 @@ Dessert Mommyal Finance — Aplikasi pencatatan keuangan sederhana untuk penjual
 | `/bahan`             | `(dashboard)/` | Daftar dan input pembelian bahan baku |
 | `/gaji`              | `(dashboard)/` | Daftar dan input pembayaran gaji karyawan |
 | `/pengeluaran`       | `(dashboard)/` | Daftar dan input pengeluaran lain-lain |
-| `/barang-gak-laku`   | `(dashboard)/` | Input dan daftar produk yang tidak terjual per tanggal |
+| `/barang-tidak-terjual` | `(dashboard)/` | Input dan daftar produk yang tidak terjual per tanggal |
 | `/master-produk`     | `(dashboard)/` | CRUD master produk                 |
 | `/rekening`          | `(dashboard)/` | CRUD rekening (bank dan cash)      |
 | `/laporan`           | `(dashboard)/` | Laporan periode (P&L, breakdown per kategori, top produk) |
+| `/pengaturan/pengguna` | `(dashboard)/` | Manajemen pengguna (Admin only) — CRUD, reset kata sandi, atur role/status |
+| `/pengaturan/profil`   | `(dashboard)/` | Profil akun pengguna (semua role) — info akun + ubah kata sandi. Auto-redirect dengan `?force=true` saat `mustChangePassword` aktif |
 
 ## API Routes
 
 | Route                  | Method | Description                                       |
 | ---------------------- | ------ | ------------------------------------------------- |
-| `/api/auth/login`      | POST   | Login (sets httpOnly cookie)                      |
-| `/api/auth/me`         | GET    | Get current user                                  |
-| `/api/auth/logout`     | POST   | Logout (clears cookie)                            |
+| `/api/auth/login`      | POST   | Verify Firebase ID token + lookup Firestore profile, set httpOnly cookie. Body: `{ idToken: string }` |
+| `/api/auth/me`         | GET    | Verify cookie + return current user from Firestore `users` collection |
+| `/api/auth/logout`     | POST   | Revoke Firebase refresh tokens + clear cookie     |
+| `/api/auth/clear-must-change-password` | POST | Mark current user `mustChangePassword=false` setelah berhasil ganti kata sandi. Wrapped `withAuth({ allowAny: true })` |
+| `/api/users`           | GET    | Daftar pengguna (sorted by createdAt desc) — Admin only di Phase 04 |
+| `/api/users`           | POST   | Buat pengguna (Firebase Auth + Firestore profile, dual-write dengan rollback) |
+| `/api/users/[id]`      | GET    | Detail pengguna                                   |
+| `/api/users/[id]`      | PATCH  | Ubah pengguna (displayName, role, status)         |
+| `/api/users/[id]`      | DELETE | Hapus pengguna (block self-delete + last admin)   |
+| `/api/users/[id]/reset-password` | POST | Generate temp password 10-char + set mustChangePassword=true. Returns `{ tempPassword }` |
 | `/api/accounts`        | GET    | Daftar semua rekening (sorted by name asc)        |
 | `/api/accounts`        | POST   | Tambah rekening baru                              |
 | `/api/accounts/[id]`   | GET    | Detail satu rekening                              |

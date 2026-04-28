@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { DashboardHeader } from "@/components/layouts/dashboard/dashboard-header"
 import { PageHeader } from "@/components/layouts/dashboard/page-header"
 import { Icon } from "@/components/shared/icon"
+import { PermissionGuard } from "@/components/shared/permission-guard"
 import { StateCard } from "@/components/shared/state-card"
 import {
   AlertDialog,
@@ -75,10 +76,12 @@ export function BarangTidakTerjualContent() {
           description="Catat produk yang tidak terjual per tanggal."
           showBack={false}
           action={
-            <Button onClick={handleAdd}>
-              <Icon name="add" size={16} />
-              Tambah Catatan
-            </Button>
+            <PermissionGuard permission="unsold-items:create">
+              <Button onClick={handleAdd}>
+                <Icon name="add" size={16} />
+                Tambah Catatan
+              </Button>
+            </PermissionGuard>
           }
         />
 

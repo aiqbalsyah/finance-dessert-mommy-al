@@ -1,6 +1,7 @@
 import "server-only"
 
 import { deleteFile } from "@/lib/firebase"
+import type { Actor } from "@/lib/repositories"
 import { salariesRepository } from "@/lib/repositories/salaries"
 import {
   salaryCreateSchema,
@@ -21,7 +22,7 @@ function cleanOptional(value: string | undefined): string | undefined {
   return value?.trim() ? value.trim() : undefined
 }
 
-export async function createSalary(payload: CreateSalaryPayload): Promise<Salary> {
+export async function createSalary(payload: CreateSalaryPayload, actor: Actor): Promise<Salary> {
   const parsed = salaryCreateSchema.parse(payload)
   return salariesRepository.create({
     employeeName: parsed.employeeName.trim(),
@@ -32,6 +33,8 @@ export async function createSalary(payload: CreateSalaryPayload): Promise<Salary
     receiptUrl: parsed.receiptUrl,
     receiptPath: parsed.receiptPath,
     note: cleanOptional(parsed.note),
+    createdBy: actor,
+    updatedBy: actor,
   })
 }
 
@@ -57,12 +60,16 @@ export async function getSalary(id: string): Promise<Salary> {
   return salary
 }
 
-export async function updateSalary(id: string, payload: UpdateSalaryPayload): Promise<Salary> {
+export async function updateSalary(
+  id: string,
+  payload: UpdateSalaryPayload,
+  actor: Actor
+): Promise<Salary> {
   const parsed = salaryUpdateSchema.parse(payload)
   const existing = await salariesRepository.findById(id)
   if (!existing) throw new SalaryNotFoundError(id)
 
-  const updates: Partial<Salary> = {}
+  const updates: Partial<Salary> = { updatedBy: actor }
   if (parsed.employeeName !== undefined) updates.employeeName = parsed.employeeName.trim()
   if (parsed.amount !== undefined) updates.amount = parsed.amount
   if (parsed.accountId !== undefined) updates.accountId = parsed.accountId

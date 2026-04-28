@@ -1,18 +1,19 @@
 import { ZodError } from "zod"
 
+import { withAuth } from "@/lib/auth"
 import { createAccount, listAccounts } from "@/lib/use-cases/accounts"
 import type { CreateAccountPayload } from "@/types/accounts"
 
-export async function GET() {
+export const GET = withAuth(async () => {
   try {
     const data = await listAccounts()
     return Response.json(data)
   } catch {
     return Response.json({ error: "Gagal memuat daftar rekening." }, { status: 500 })
   }
-}
+}, { permission: "accounts:read" })
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request) => {
   try {
     const body = (await request.json()) as CreateAccountPayload
     const data = await createAccount(body)
@@ -26,4 +27,4 @@ export async function POST(request: Request) {
     }
     return Response.json({ error: "Gagal membuat rekening." }, { status: 500 })
   }
-}
+}, { permission: "accounts:create" })

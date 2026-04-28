@@ -43,6 +43,12 @@ const navGroups: NavGroup[] = [
       { title: "Laporan", url: "/laporan", icon: <Icon name="analytics" /> },
     ],
   },
+  {
+    label: "Pengaturan",
+    items: [
+      { title: "Pengguna", url: "/pengaturan/pengguna", icon: <Icon name="group" /> },
+    ],
+  },
 ]
 
 function SidebarBrand() {
@@ -114,9 +120,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarSeparator className={"mx-0"} />
         <NavUser
           user={{
-            name: user?.name ?? "Tamu",
+            name: user?.displayName ?? "Tamu",
             email: user?.email ?? "",
-            avatar: user?.avatar ?? "",
+            avatar: "",
           }}
         />
       </SidebarFooter>

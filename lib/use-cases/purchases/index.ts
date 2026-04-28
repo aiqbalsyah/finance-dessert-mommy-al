@@ -3,6 +3,7 @@ import "server-only"
 import { ZodError } from "zod"
 
 import { deleteFile } from "@/lib/firebase"
+import type { Actor } from "@/lib/repositories"
 import { purchasesRepository } from "@/lib/repositories/purchases"
 import {
   purchaseCreateSchema,
@@ -23,7 +24,7 @@ function cleanOptional(value: string | undefined): string | undefined {
   return value?.trim() ? value.trim() : undefined
 }
 
-export async function createPurchase(payload: CreatePurchasePayload): Promise<Purchase> {
+export async function createPurchase(payload: CreatePurchasePayload, actor: Actor): Promise<Purchase> {
   const parsed = purchaseCreateSchema.parse(payload)
   return purchasesRepository.create({
     description: parsed.description.trim(),
@@ -34,6 +35,8 @@ export async function createPurchase(payload: CreatePurchasePayload): Promise<Pu
     receiptUrl: parsed.receiptUrl,
     receiptPath: parsed.receiptPath,
     note: cleanOptional(parsed.note),
+    createdBy: actor,
+    updatedBy: actor,
   })
 }
 
@@ -57,12 +60,16 @@ export async function getPurchase(id: string): Promise<Purchase> {
   return purchase
 }
 
-export async function updatePurchase(id: string, payload: UpdatePurchasePayload): Promise<Purchase> {
+export async function updatePurchase(
+  id: string,
+  payload: UpdatePurchasePayload,
+  actor: Actor
+): Promise<Purchase> {
   const parsed = purchaseUpdateSchema.parse(payload)
   const existing = await purchasesRepository.findById(id)
   if (!existing) throw new PurchaseNotFoundError(id)
 
-  const updates: Partial<Purchase> = {}
+  const updates: Partial<Purchase> = { updatedBy: actor }
   if (parsed.description !== undefined) updates.description = parsed.description.trim()
   if (parsed.amount !== undefined) updates.amount = parsed.amount
   if (parsed.accountId !== undefined) updates.accountId = parsed.accountId

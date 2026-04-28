@@ -1,5 +1,6 @@
 import "server-only"
 
+import type { Actor } from "@/lib/repositories"
 import { productsRepository } from "@/lib/repositories/products"
 import { unsoldItemsRepository } from "@/lib/repositories/unsold-items"
 import {
@@ -21,7 +22,7 @@ function cleanOptional(value: string | undefined): string | undefined {
   return value?.trim() ? value.trim() : undefined
 }
 
-export async function createUnsoldItem(payload: CreateUnsoldItemPayload): Promise<UnsoldItem> {
+export async function createUnsoldItem(payload: CreateUnsoldItemPayload, actor: Actor): Promise<UnsoldItem> {
   const parsed = unsoldItemCreateSchema.parse(payload)
   const product = await productsRepository.findById(parsed.productId)
   if (!product) throw new Error("Produk yang dipilih tidak ditemukan.")
@@ -33,6 +34,8 @@ export async function createUnsoldItem(payload: CreateUnsoldItemPayload): Promis
     date: parsed.date,
     reason: parsed.reason,
     note: cleanOptional(parsed.note),
+    createdBy: actor,
+    updatedBy: actor,
   })
 }
 
@@ -61,12 +64,16 @@ export async function getUnsoldItem(id: string): Promise<UnsoldItem> {
   return item
 }
 
-export async function updateUnsoldItem(id: string, payload: UpdateUnsoldItemPayload): Promise<UnsoldItem> {
+export async function updateUnsoldItem(
+  id: string,
+  payload: UpdateUnsoldItemPayload,
+  actor: Actor
+): Promise<UnsoldItem> {
   const parsed = unsoldItemUpdateSchema.parse(payload)
   const existing = await unsoldItemsRepository.findById(id)
   if (!existing) throw new UnsoldItemNotFoundError(id)
 
-  const updates: Partial<UnsoldItem> = {}
+  const updates: Partial<UnsoldItem> = { updatedBy: actor }
 
   if (parsed.productId !== undefined && parsed.productId !== existing.productId) {
     const product = await productsRepository.findById(parsed.productId)

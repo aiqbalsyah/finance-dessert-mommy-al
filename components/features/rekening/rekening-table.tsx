@@ -3,6 +3,8 @@
 import { useMemo } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 
+import { useAuth } from "@/context/auth-provider"
+import { AuditTooltip } from "@/components/shared/audit-tooltip"
 import { Icon } from "@/components/shared/icon"
 import { DataTableCard } from "@/components/shared/data-table-card"
 import { Badge } from "@/components/ui/badge"
@@ -24,13 +26,24 @@ interface RekeningTableProps {
 }
 
 export function RekeningTable({ data, onEdit, onDelete }: RekeningTableProps) {
+  const { can } = useAuth()
+  const canEdit = can("accounts:update")
+  const canDelete = can("accounts:delete")
+
   const columns = useMemo<ColumnDef<Account>[]>(
     () => [
       {
         accessorKey: "name",
         header: "Nama Rekening",
         cell: ({ row }) => (
-          <span className="font-medium">{row.getValue<string>("name")}</span>
+          <AuditTooltip
+            createdAt={row.original.createdAt}
+            updatedAt={row.original.updatedAt}
+            createdBy={row.original.createdBy}
+            updatedBy={row.original.updatedBy}
+          >
+            <span className="font-medium">{row.getValue<string>("name")}</span>
+          </AuditTooltip>
         ),
       },
       {
@@ -75,6 +88,9 @@ export function RekeningTable({ data, onEdit, onDelete }: RekeningTableProps) {
         enableHiding: false,
         cell: ({ row }) => {
           const account = row.original
+          if (!canEdit && !canDelete) {
+            return <span className="text-xs text-muted-foreground">—</span>
+          }
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -86,17 +102,21 @@ export function RekeningTable({ data, onEdit, onDelete }: RekeningTableProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onEdit(account)}>
-                      <Icon name="edit" size={16} />
-                      Ubah
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(account)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Icon name="delete" size={16} />
-                      Hapus
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(account)}>
+                        <Icon name="edit" size={16} />
+                        Ubah
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(account)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Icon name="delete" size={16} />
+                        Hapus
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -105,7 +125,7 @@ export function RekeningTable({ data, onEdit, onDelete }: RekeningTableProps) {
         },
       },
     ],
-    [onEdit, onDelete]
+    [onEdit, onDelete, canEdit, canDelete]
   )
 
   return (

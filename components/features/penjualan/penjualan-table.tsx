@@ -3,6 +3,8 @@
 import { useMemo } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 
+import { useAuth } from "@/context/auth-provider"
+import { AuditTooltip } from "@/components/shared/audit-tooltip"
 import { Icon } from "@/components/shared/icon"
 import { DataTableCard } from "@/components/shared/data-table-card"
 import { Button } from "@/components/ui/button"
@@ -25,6 +27,10 @@ interface PenjualanTableProps {
 }
 
 export function PenjualanTable({ data, accounts, onEdit, onDelete }: PenjualanTableProps) {
+  const { can } = useAuth()
+  const canEdit = can("sales:update")
+  const canDelete = can("sales:delete")
+
   const accountMap = useMemo(
     () => new Map(accounts.map((a) => [a.id, a])),
     [accounts]
@@ -36,7 +42,14 @@ export function PenjualanTable({ data, accounts, onEdit, onDelete }: PenjualanTa
         accessorKey: "soldAt",
         header: "Tanggal",
         cell: ({ row }) => (
-          <span className="whitespace-nowrap">{formatDate(row.getValue<number>("soldAt"))}</span>
+          <AuditTooltip
+            createdAt={row.original.createdAt}
+            updatedAt={row.original.updatedAt}
+            createdBy={row.original.createdBy}
+            updatedBy={row.original.updatedBy}
+          >
+            <span className="whitespace-nowrap">{formatDate(row.getValue<number>("soldAt"))}</span>
+          </AuditTooltip>
         ),
       },
       {
@@ -108,6 +121,9 @@ export function PenjualanTable({ data, accounts, onEdit, onDelete }: PenjualanTa
         enableHiding: false,
         cell: ({ row }) => {
           const sale = row.original
+          if (!canEdit && !canDelete) {
+            return <span className="text-xs text-muted-foreground">—</span>
+          }
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -119,17 +135,21 @@ export function PenjualanTable({ data, accounts, onEdit, onDelete }: PenjualanTa
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onEdit(sale)}>
-                      <Icon name="edit" size={16} />
-                      Ubah
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(sale)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Icon name="delete" size={16} />
-                      Hapus
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(sale)}>
+                        <Icon name="edit" size={16} />
+                        Ubah
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(sale)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Icon name="delete" size={16} />
+                        Hapus
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -138,7 +158,7 @@ export function PenjualanTable({ data, accounts, onEdit, onDelete }: PenjualanTa
         },
       },
     ],
-    [accountMap, onEdit, onDelete]
+    [accountMap, onEdit, onDelete, canEdit, canDelete]
   )
 
   return (

@@ -11,10 +11,21 @@ import {
 
 import { getDb } from "@/lib/firebase"
 
+export interface Actor {
+  /** Firebase UID of the user performing the action. */
+  userId: string
+  /** Snapshot of the user's display name at action time. Preserved if user is later renamed/deleted. */
+  userName: string
+}
+
 export interface BaseEntity {
   id: string
   createdAt: number
   updatedAt: number
+  /** Snapshot of the user who created this document. Optional for backward compatibility with pre-audit-trail records. */
+  createdBy?: Actor
+  /** Snapshot of the user who last updated this document. */
+  updatedBy?: Actor
 }
 
 export interface QueryFilter {

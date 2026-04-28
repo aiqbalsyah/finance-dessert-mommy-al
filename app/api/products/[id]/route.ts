@@ -1,5 +1,6 @@
 import { ZodError } from "zod"
 
+import { withAuth } from "@/lib/auth"
 import {
   ProductNotFoundError,
   deleteProduct,
@@ -12,7 +13,7 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export const GET = withAuth<RouteContext>(async (_request, context) => {
   const { id } = await context.params
   try {
     const data = await getProduct(id)
@@ -23,13 +24,13 @@ export async function GET(_request: Request, context: RouteContext) {
     }
     return Response.json({ error: "Gagal memuat produk." }, { status: 500 })
   }
-}
+}, { permission: "products:read" })
 
-export async function PATCH(request: Request, context: RouteContext) {
+export const PATCH = withAuth<RouteContext>(async (request, context, user) => {
   const { id } = await context.params
   try {
     const body = (await request.json()) as UpdateProductPayload
-    const data = await updateProduct(id, body)
+    const data = await updateProduct(id, body, { userId: user.id, userName: user.displayName })
     return Response.json(data)
   } catch (error) {
     if (error instanceof ProductNotFoundError) {
@@ -43,9 +44,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
     return Response.json({ error: "Gagal mengubah produk." }, { status: 500 })
   }
-}
+}, { permission: "products:update" })
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export const DELETE = withAuth<RouteContext>(async (_request, context) => {
   const { id } = await context.params
   try {
     await deleteProduct(id)
@@ -56,4 +57,4 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
     return Response.json({ error: "Gagal menghapus produk." }, { status: 500 })
   }
-}
+}, { permission: "products:delete" })

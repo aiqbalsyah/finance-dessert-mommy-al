@@ -3,6 +3,8 @@
 import { useMemo } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 
+import { useAuth } from "@/context/auth-provider"
+import { AuditTooltip } from "@/components/shared/audit-tooltip"
 import { Icon } from "@/components/shared/icon"
 import { DataTableCard } from "@/components/shared/data-table-card"
 import { Badge } from "@/components/ui/badge"
@@ -40,13 +42,24 @@ function formatDateString(dateStr: string): string {
 }
 
 export function BarangTidakTerjualTable({ data, onEdit, onDelete }: BarangTidakTerjualTableProps) {
+  const { can } = useAuth()
+  const canEdit = can("unsold-items:update")
+  const canDelete = can("unsold-items:delete")
+
   const columns = useMemo<ColumnDef<UnsoldItem>[]>(
     () => [
       {
         accessorKey: "date",
         header: "Tanggal",
         cell: ({ row }) => (
-          <span className="whitespace-nowrap">{formatDateString(row.getValue<string>("date"))}</span>
+          <AuditTooltip
+            createdAt={row.original.createdAt}
+            updatedAt={row.original.updatedAt}
+            createdBy={row.original.createdBy}
+            updatedBy={row.original.updatedBy}
+          >
+            <span className="whitespace-nowrap">{formatDateString(row.getValue<string>("date"))}</span>
+          </AuditTooltip>
         ),
       },
       {
@@ -97,6 +110,9 @@ export function BarangTidakTerjualTable({ data, onEdit, onDelete }: BarangTidakT
         enableHiding: false,
         cell: ({ row }) => {
           const item = row.original
+          if (!canEdit && !canDelete) {
+            return <span className="text-xs text-muted-foreground">—</span>
+          }
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -108,17 +124,21 @@ export function BarangTidakTerjualTable({ data, onEdit, onDelete }: BarangTidakT
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onEdit(item)}>
-                      <Icon name="edit" size={16} />
-                      Ubah
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(item)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Icon name="delete" size={16} />
-                      Hapus
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(item)}>
+                        <Icon name="edit" size={16} />
+                        Ubah
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(item)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Icon name="delete" size={16} />
+                        Hapus
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -127,7 +147,7 @@ export function BarangTidakTerjualTable({ data, onEdit, onDelete }: BarangTidakT
         },
       },
     ],
-    [onEdit, onDelete]
+    [onEdit, onDelete, canEdit, canDelete]
   )
 
   return (
