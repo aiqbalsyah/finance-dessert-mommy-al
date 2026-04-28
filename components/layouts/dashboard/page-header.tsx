@@ -25,7 +25,12 @@ export function PageHeader({
   const router = useRouter()
 
   return (
-    <div className={cn("flex items-start justify-between gap-4", className)}>
+    <div
+      className={cn(
+        "flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start sm:gap-4",
+        className,
+      )}
+    >
       <div className="flex items-start gap-2">
         {showBack && (
           <Button
@@ -47,7 +52,7 @@ export function PageHeader({
           )}
         </div>
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="sm:shrink-0">{action}</div>}
     </div>
   )
 }

@@ -95,7 +95,7 @@ export function RekeningTable({ data, onEdit, onDelete }: RekeningTableProps) {
             <div className="flex justify-end">
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  render={<Button variant="ghost" className="size-8 p-0" />}
+                  render={<Button variant="ghost" className="size-9 p-0" />}
                 >
                   <span className="sr-only">Buka menu aksi</span>
                   <Icon name="more_horiz" size={16} />

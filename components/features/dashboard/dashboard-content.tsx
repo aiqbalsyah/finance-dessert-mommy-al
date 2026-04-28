@@ -22,7 +22,7 @@ export function DashboardContent() {
           title="Dashboard"
           description={`Ringkasan keuangan • ${formatPeriodRange(range)}`}
           showBack={false}
-          action={<PeriodPicker value={preset} onChange={setPreset} className="w-40" />}
+          action={<PeriodPicker value={preset} onChange={setPreset} className="w-full sm:w-40" />}
         />
 
         <DashboardMetrics period={range} />

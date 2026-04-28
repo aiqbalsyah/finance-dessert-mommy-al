@@ -8,5 +8,5 @@ interface LaporanPeriodPickerProps {
 }
 
 export function LaporanPeriodPicker({ value, onChange }: LaporanPeriodPickerProps) {
-  return <PeriodPicker value={value} onChange={onChange} className="w-40" />
+  return <PeriodPicker value={value} onChange={onChange} className="w-full sm:w-40" />
 }
